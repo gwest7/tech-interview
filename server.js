@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
+import { search } from './search.js';
 
 const PUBLIC_DIR = resolve(import.meta.dirname, 'public');
 
@@ -17,6 +18,15 @@ const CONTENT_TYPES = {
 export const server = createServer(async (req, res) => {
   try {
     const { pathname } = new URL(req.url, 'http://localhost');
+    if (pathname === '/api/search') {
+      // Simulates a real backend: variable latency and the odd failure.
+      await new Promise((done) => setTimeout(done, 100 + Math.random() * 1400));
+      if (Math.random() < 0.15) throw new Error('search backend unavailable');
+      const q = new URL(req.url, 'http://localhost').searchParams.get('q') ?? '';
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(search(q)));
+      return;
+    }
     const relative = decodeURIComponent(pathname === '/' ? '/index.html' : pathname);
     const file = join(PUBLIC_DIR, relative);
 
