@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
+import { createStore } from './data-store.js';
 
 const PUBLIC_DIR = resolve(import.meta.dirname, 'public');
 
@@ -14,9 +15,16 @@ const CONTENT_TYPES = {
   '.ico': 'image/x-icon',
 };
 
+const store = createStore();
+
 export const server = createServer(async (req, res) => {
   try {
     const { pathname } = new URL(req.url, 'http://localhost');
+    if (pathname === '/api/data') {
+      res.writeHead(200);
+      res.end(JSON.stringify(await store.get()));
+      return;
+    }
     const relative = decodeURIComponent(pathname === '/' ? '/index.html' : pathname);
     const file = join(PUBLIC_DIR, relative);
 
@@ -33,6 +41,7 @@ export const server = createServer(async (req, res) => {
 });
 
 if (import.meta.main) {
+  store.start();
   const port = process.env.PORT ?? 3000;
   server.listen(port, () => console.log(`Listening on http://localhost:${port}`));
 }
